@@ -1,0 +1,70 @@
+from fastapi import FastAPI, Body, HTTPException, Depends
+from fastapi.responses import RedirectResponse
+from typing import Annotated
+from pydantic import AnyHttpUrl
+from utils import generate_url_code
+
+from sqlalchemy import Connection, text
+from db import get_connection
+
+
+BASE_URL = "http://127.0.0.1:8000/"
+
+app = FastAPI()
+
+# Naming?
+@app.post("/urls")
+def shorten_url(
+    url: Annotated[AnyHttpUrl, Body()],
+    conn: Connection = Depends(get_connection)
+):
+    url_code = generate_url_code()
+    
+    conn.execute(
+        text("INSERT INTO urls (code, url) VALUES (:code, :url)"),
+        {"code": url_code, "url": str(url)}
+    )
+    conn.commit()
+
+    return {
+        "code": url_code,
+        "url": url,
+        "short_url": BASE_URL + url_code
+    }
+
+@app.get("/urls")
+def list_urls(conn: Connection = Depends(get_connection)):
+    result = conn.execute(
+        text("SELECT * FROM urls")
+    )
+    return result.mappings().all()
+
+@app.get("/{url_code}")
+def redirect_to_url(
+    url_code: str,
+    conn: Connection = Depends(get_connection)
+):
+    result = conn.execute(
+        text("SELECT url FROM urls WHERE code = :code"),
+        {"code": url_code}
+    )
+    rows = result.all()
+    if not rows:
+        raise HTTPException(404, "URL Code not found")
+    
+    conn.execute(
+        text("INSERT INTO visits (code) VALUES (:code)"),
+        {"code": url_code}
+    )
+    conn.commit()
+    
+    return RedirectResponse(rows[0].url)
+
+"""
+TO DO:
+- Ensure code uniqueness
+- Assign users
+- Get urls per user
+- Get the code by url
+- Get URL by code (not redirect)
+"""
