@@ -1,13 +1,14 @@
-from fastapi import FastAPI, Body, HTTPException, Depends
+from fastapi import FastAPI, Body, HTTPException, Depends, status
 from fastapi.responses import RedirectResponse
 from typing import Annotated
 from pydantic import AnyHttpUrl
 from utils import generate_url_code
 
-from sqlalchemy import Connection, text
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from db.database import Base, engine, get_connection
-from db import models
+from sqlalchemy.orm import Session
+from db.database import Base, engine, get_db
+from db.models import URL, Visit
 
 
 BASE_URL = "http://127.0.0.1:8000/"
@@ -22,54 +23,55 @@ def on_startup():
 @app.post("/urls")
 def shorten_url(
     url: Annotated[AnyHttpUrl, Body()],
-    conn: Connection = Depends(get_connection)
+    db: Session = Depends(get_db)
 ):
     for _ in range(MAX_RETRIES):
         url_code = generate_url_code()
         try:
-            conn.execute(
-                text("INSERT INTO urls (code, url) VALUES (:code, :url)"),
-                {"code": url_code, "url": str(url)}
+            db.add(
+                URL(code=url_code, url=str(url))
             )
-            conn.commit()
+            db.commit()
             return {
-                "code": url_code,
+                "url_code": url_code,
                 "url": url,
                 "short_url": BASE_URL + url_code
             }
         except IntegrityError:
-            conn.rollback()
-            continue
-    raise HTTPException(500, "Failed to generate unique code after maximum retries.")
+            db.rollback()
+            
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Failed to generate unique code after maximum retries"
+    )
 
 
 @app.get("/urls")
-def list_urls(conn: Connection = Depends(get_connection)):
-    result = conn.execute(
-        text("SELECT * FROM urls")
-    )
-    return result.mappings().all()
+def list_urls(db: Session = Depends(get_db)):
+    stmt = select(URL)
+    return db.execute(stmt).scalars().all()
 
-@app.get("/{url_code}")
+@app.get("/{url_code}", response_class=RedirectResponse)
 def redirect_to_url(
     url_code: str,
-    conn: Connection = Depends(get_connection)
+    db: Session = Depends(get_db)
 ):
-    result = conn.execute(
-        text("SELECT url FROM urls WHERE code = :code"),
-        {"code": url_code}
-    )
-    rows = result.all()
-    if not rows:
-        raise HTTPException(404, "URL Code not found")
+    stmt = select(URL.url).where(URL.code == url_code)
+    url = db.execute(stmt).scalar_one_or_none()
+
+    if url is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="URL code not found"
+        )
     
-    conn.execute(
-        text("INSERT INTO visits (code) VALUES (:code)"),
-        {"code": url_code}
-    )
-    conn.commit()
+    db.add(Visit(code=url_code))
+    db.commit()
     
-    return RedirectResponse(rows[0].url)
+    return RedirectResponse(
+        url=url,
+        status_code=status.HTTP_307_TEMPORARY_REDIRECT
+    )
 
 """
 TO DO:

@@ -14,16 +14,13 @@ DATABASE_URL = (
 
 engine = create_engine(DATABASE_URL)
 
-def get_connection():
-    with engine.connect() as connection:
-        yield connection
-
+# What if we used = Session()?
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 class Base(DeclarativeBase):
     pass
 
-# FastAPI-specific
+# Need to understand this + Can we do a begin once style?
 def get_db():
     db = SessionLocal()
     try:
