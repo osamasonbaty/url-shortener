@@ -14,13 +14,11 @@ DATABASE_URL = (
 
 engine = create_engine(DATABASE_URL)
 
-# What if we used = Session()?
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(engine)
 
 class Base(DeclarativeBase):
     pass
 
-# Need to understand this + Can we do a begin once style?
 def get_db():
     db = SessionLocal()
     try:
