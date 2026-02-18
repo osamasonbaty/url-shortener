@@ -5,32 +5,38 @@ from pydantic import AnyHttpUrl
 from utils import generate_url_code
 
 from sqlalchemy import Connection, text
+from sqlalchemy.exc import IntegrityError
 from db import get_connection
 
 
 BASE_URL = "http://127.0.0.1:8000/"
+MAX_RETRIES = 3
 
 app = FastAPI()
 
-# Naming?
 @app.post("/urls")
 def shorten_url(
     url: Annotated[AnyHttpUrl, Body()],
     conn: Connection = Depends(get_connection)
 ):
-    url_code = generate_url_code()
-    
-    conn.execute(
-        text("INSERT INTO urls (code, url) VALUES (:code, :url)"),
-        {"code": url_code, "url": str(url)}
-    )
-    conn.commit()
+    for _ in range(MAX_RETRIES):
+        url_code = generate_url_code()
+        try:
+            conn.execute(
+                text("INSERT INTO urls (code, url) VALUES (:code, :url)"),
+                {"code": url_code, "url": str(url)}
+            )
+            conn.commit()
+            return {
+                "code": url_code,
+                "url": url,
+                "short_url": BASE_URL + url_code
+            }
+        except IntegrityError:
+            conn.rollback()
+            continue
+    raise HTTPException(500, "Failed to generate unique code after maximum retries.")
 
-    return {
-        "code": url_code,
-        "url": url,
-        "short_url": BASE_URL + url_code
-    }
 
 @app.get("/urls")
 def list_urls(conn: Connection = Depends(get_connection)):
