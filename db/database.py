@@ -1,4 +1,5 @@
 from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
 import os
 
 user = "postgres"
@@ -17,16 +18,15 @@ def get_connection():
     with engine.connect() as connection:
         yield connection
 
-# from sqlalchemy.orm import sessionmaker, DeclarativeBase
-# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# class Base(DeclarativeBase):
-#     pass
+class Base(DeclarativeBase):
+    pass
 
-# # FastAPI-specific
-# def get_db():
-#     db = SessionLocal()
-#     try:
-#         yield db
-#     finally:
-#         db.close()
+# FastAPI-specific
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

@@ -6,13 +6,18 @@ from utils import generate_url_code
 
 from sqlalchemy import Connection, text
 from sqlalchemy.exc import IntegrityError
-from db import get_connection
+from db.database import Base, engine, get_connection
+from db import models
 
 
 BASE_URL = "http://127.0.0.1:8000/"
 MAX_RETRIES = 3
 
 app = FastAPI()
+
+@app.on_event("startup")
+def on_startup():
+    Base.metadata.create_all(bind=engine)
 
 @app.post("/urls")
 def shorten_url(
@@ -68,7 +73,6 @@ def redirect_to_url(
 
 """
 TO DO:
-- Ensure code uniqueness
 - Assign users
 - Get urls per user
 - Get the code by url
