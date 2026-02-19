@@ -13,15 +13,16 @@ It stores shortened URLs in a database, lists stored URLs, and redirects short c
 
 My purpose of building this app is to implement backend development concepts I have learned so far. Naturally, there are a lot of improvements that will be implemented as I learn.
 
-- More endpoints:
-    - List URLs per user
-    - Retrieve URL by code without redirecting
-    - Get shortcodes for a given domain
-- Professional archeticture
-- ORMs
-- Migrations
-- Users/admin panel/authentication
-- Deployment
-- Testing
-- Simple Forntend
-- CI/CD?
+- [x] ORMs
+- [ ] Users
+- [ ] Auth
+- [ ] More endpoints:
+    - [ ] List URLs per user
+    - [ ] Retrieve URL by code without redirecting
+    - [ ] Get shortcodes for a given domain
+- [ ] Professional archeticture and project structure
+- [ ] Migrations
+- [ ] Deployment
+- [ ] Testing
+- [ ] Simple Forntend
+- [ ] CI/CD?
