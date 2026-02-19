@@ -10,6 +10,7 @@ class Base(DeclarativeBase):
     pass
 
 # TODO: Use Pydantic Settings. Can Also add URL creation from sqlalchemy
+# Ref: https://github.com/fastapi/full-stack-fastapi-template/blob/master/backend/app/core/db.py
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
@@ -40,6 +41,8 @@ if not DATABASE_URL:
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(engine)
 
+# Define in deps.py
+# Ref: https://github.com/fastapi/full-stack-fastapi-template/blob/master/backend/app/api/deps.py
 def get_db():
     db = SessionLocal()
     try:
