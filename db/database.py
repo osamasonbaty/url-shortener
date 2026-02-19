@@ -1,23 +1,44 @@
+import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
-import os
+from sqlalchemy.engine import URL
 
-user = "postgres"
-password = os.getenv("PGPASSWORD")
-host = "localhost"
-port = "5432"
-database = "url_shortener"
-
-DATABASE_URL = (
-    f"postgresql+psycopg://{user}:{password}@{host}:{port}/{database}"
-)
-
-engine = create_engine(DATABASE_URL)
-
-SessionLocal = sessionmaker(engine)
+load_dotenv()
 
 class Base(DeclarativeBase):
     pass
+
+# TODO: Use Pydantic Settings. Can Also add URL creation from sqlalchemy
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    db_type = os.getenv("DB_TYPE", "sqlite+pysqlite")
+    database = os.getenv("DB_NAME", "url_shortener")
+
+    if db_type.startswith("sqlite"):
+        sqlite_database = database if database.endswith(".db") else f"{database}.db"
+        DATABASE_URL = f"{db_type}:///{sqlite_database}"
+    else:
+        user = os.getenv("DB_USER", "postgres")
+        password = os.getenv("DB_PASSWORD")
+        host = os.getenv("DB_HOST", "localhost")
+        port = int(os.getenv("DB_PORT", "5432"))
+
+        if not password:
+            raise RuntimeError("DB_PASSWORD is not set")
+
+        DATABASE_URL = URL.create(
+            drivername=db_type,
+            username=user,
+            password=password,
+            host=host,
+            port=port,
+            database=database,
+        )
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(engine)
 
 def get_db():
     db = SessionLocal()
