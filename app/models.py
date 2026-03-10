@@ -1,7 +1,9 @@
-from db.database import Base
-from sqlalchemy import ForeignKey, String, DateTime, func, CheckConstraint
-from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
+
+from sqlalchemy import ForeignKey, String, DateTime, func
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.core.db import Base
 
 
 class User(Base):

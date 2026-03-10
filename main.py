@@ -1,31 +1,22 @@
-import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Annotated
+
 from fastapi import FastAPI, Body, Form, HTTPException, Depends, status
 from fastapi.responses import RedirectResponse
-from utils import generate_url_code
-from dotenv import load_dotenv
-from pydantic import AnyHttpUrl, ValidationError
-
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-import jwt
-from jwt import InvalidTokenError
-from pwdlib import PasswordHash
-
-from sqlalchemy import select, exists
+from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import AnyHttpUrl
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
-from db.database import Base, engine, get_db
-from db.models import URL, Visit, User
-from schemas import Token, TokenData, UserRegister
 
-load_dotenv()
+from app import crud
+from app.utils import generate_url_code
+from app.models import URL, Visit
+from app.schemas import Token, UserCreate, UserPublic
+from app.core.config import settings
+from app.core.security import create_access_token
+from app.core.db import Base, engine
+from app.api.deps import SessionDep, CurrentUser
 
-BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000/")
-MAX_RETRIES = os.getenv("MAX_RETRIES", 3)
-ACCESS_TOKEN_EXPIRES_MINUTES= os.getenv("ACCESS_TOKEN_EXPIRES_MINUTES", 30)
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 app = FastAPI()
 
@@ -34,106 +25,35 @@ def on_startup():
     Base.metadata.create_all(bind=engine)
 
 
-######################
-###### Security ######
-######################
-oauth2_schema = OAuth2PasswordBearer(tokenUrl="token")
-
-password_hash = PasswordHash.recommended()
-DUMMY_HASH = password_hash.hash("dummypassword")
-
-def get_hashed_password(password: str):
-    return password_hash.hash(password)
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return password_hash.verify(plain_password, hashed_password)
-
-def get_user_by_email(db: Session, email: str) -> User | None:
-    statement = select(User).where(User.email == email)
-    user = db.execute(statement).scalars().first()
-    return user
-
-def get_user_by_id(db: Session, id: int) -> User | None:
-    statement = select(User).where(User.id == id)
-    user = db.execute(statement).scalars().first()
-    return user
-
-def create_access_token(sub: str, expires_delta: timedelta):
-    expires = datetime.now(timezone.utc) + expires_delta
-    return jwt.encode(
-        payload={"sub": str(sub), "exp": expires},
-        key=SECRET_KEY,
-        algorithm=ALGORITHM
-    )
-
-def authenticate_user(db: Session, email: str, password: str) -> User | None:
-    user = get_user_by_email(db, email)
-    if user is None:
-        verify_password(password, DUMMY_HASH) # prevent timing attacks
-        return None
-    if not verify_password(password, user.hashed_password):
-        return None
-    return user
-
-def get_current_user(
-        db: Annotated[Session, Depends(get_db)],
-        token: Annotated[str, Depends(oauth2_schema)]
-) -> User:
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        token_data = TokenData(**payload)
-    except (InvalidTokenError, ValidationError):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Could not validate credentials",
-        )
-    user = db.get(User, int(token_data.sub))
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
-    
 @app.post("/token")
-def login_for_access_token(db: Annotated[Session, Depends(get_db)], form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-    # auhtenticate user
-    user = authenticate_user(db, form_data.username, form_data.password)
+def login_for_access_token(db: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+    user = crud.authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRES_MINUTES) # type: ignore
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return Token(
         access_token=create_access_token(str(user.id), access_token_expires),
         token_type="bearer"
     )
 
 
-@app.post("/register")
-def register(db: Annotated[Session, Depends(get_db)], form_data: Annotated[UserRegister, Form()]):
-    email_exists = db.scalar(
-        select(exists().where(User.email == form_data.email))
-    )
-    if email_exists:
+@app.post("/users", response_model=UserPublic)
+def create_user(db: SessionDep, user_in: Annotated[UserCreate, Form()]):
+    user = crud.get_user_by_email(db, user_in.email)
+    if user:
         raise HTTPException(status_code=400, detail="Email already exists")
-    new_user = User(
-        name=form_data.name,
-        email=form_data.email,
-        hashed_password=get_hashed_password(form_data.password),
-        phone=form_data.phone
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    user = crud.create_user(db, user_in)
 
-    return {"id": new_user.id, "email": new_user.email, "phone": form_data.phone}
-######################
-### Main Endpoints ###
-######################
+    return user
+
 
 @app.post("/urls")
-def shorten_url(
+def create_url(
     url: Annotated[AnyHttpUrl, Body()],
-    db: Annotated[Session, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)]
+    db: SessionDep,
+    user: CurrentUser
 ):
-    for _ in range(MAX_RETRIES): # type: ignore
+    for _ in range(settings.CODE_GEN_MAX_RETRIES):
         url_code = generate_url_code()
         try:
             db.add(
@@ -143,7 +63,7 @@ def shorten_url(
             return {
                 "url_code": url_code,
                 "url": url,
-                "short_url": BASE_URL + url_code
+                "short_url": f"{settings.BACKEND_HOST}/{url_code}"
             }
         except IntegrityError:
             db.rollback()
@@ -156,17 +76,18 @@ def shorten_url(
 
 @app.get("/urls")
 def list_urls(
-    db: Annotated[Session, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)]
+    db: SessionDep,
+    user: CurrentUser
 ):
     stmt = select(URL.code, URL.created_at).where(URL.user_id == user.id)
     rows = db.execute(stmt).mappings().all()
     return rows
 
+
 @app.get("/urls/visits")
 def list_url_visits(
-    db: Annotated[Session, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)]
+    db: SessionDep,
+    user: CurrentUser
 ):
     stmt = (
         select(URL.code, Visit.created_at)
@@ -186,10 +107,11 @@ def list_url_visits(
         for code, dates in visits_by_code.items()
     ]
 
+
 @app.get("/{url_code}", response_class=RedirectResponse)
 def redirect_to_url(
     url_code: str,
-    db: Session = Depends(get_db)
+    db: SessionDep
 ):
     stmt = select(URL.url).where(URL.code == url_code)
     url = db.execute(stmt).scalar_one_or_none()
