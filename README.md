@@ -16,6 +16,7 @@ My purpose of building this app is to implement backend development concepts I h
 - [x] ORMs
 - [ ] Users
 - [ ] Auth
+- [ ] ORM relationships
 - [ ] More endpoints:
     - [ ] List URLs per user
     - [ ] Retrieve URL by code without redirecting
