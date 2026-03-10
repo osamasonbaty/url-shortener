@@ -23,7 +23,7 @@ load_dotenv()
 
 BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000/")
 MAX_RETRIES = os.getenv("MAX_RETRIES", 3)
-ACCESS_TOKEN_EXPIRES_MINUTES= os.getenv("ACCESS_TOKEN_EXPIRES_MINUTES", 15)
+ACCESS_TOKEN_EXPIRES_MINUTES= os.getenv("ACCESS_TOKEN_EXPIRES_MINUTES", 30)
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
@@ -130,13 +130,14 @@ def register(db: Annotated[Session, Depends(get_db)], form_data: Annotated[UserR
 @app.post("/urls")
 def shorten_url(
     url: Annotated[AnyHttpUrl, Body()],
-    db: Session = Depends(get_db)
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)]
 ):
     for _ in range(MAX_RETRIES): # type: ignore
         url_code = generate_url_code()
         try:
             db.add(
-                URL(code=url_code, url=str(url))
+                URL(code=url_code, url=str(url), user_id=user.id)
             )
             db.commit()
             return {
@@ -154,9 +155,36 @@ def shorten_url(
 
 
 @app.get("/urls")
-def list_urls(db: Session = Depends(get_db)):
-    stmt = select(URL)
-    return db.execute(stmt).scalars().all()
+def list_urls(
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)]
+):
+    stmt = select(URL.code, URL.created_at).where(URL.user_id == user.id)
+    rows = db.execute(stmt).mappings().all()
+    return rows
+
+@app.get("/urls/visits")
+def list_url_visits(
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)]
+):
+    stmt = (
+        select(URL.code, Visit.created_at)
+        .outerjoin(Visit, Visit.code == URL.code)
+        .where(URL.user_id == user.id)
+        .order_by(URL.code, Visit.created_at)
+    )
+    rows = db.execute(stmt).all()
+    visits_by_code: dict[str, list[datetime]] = {}
+    for code, created_at in rows:
+        if code not in visits_by_code:
+            visits_by_code[code] = []
+        if created_at is not None:
+            visits_by_code[code].append(created_at)
+    return [
+        {"code": code, "visits": len(dates), "dates": dates}
+        for code, dates in visits_by_code.items()
+    ]
 
 @app.get("/{url_code}", response_class=RedirectResponse)
 def redirect_to_url(

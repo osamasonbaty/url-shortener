@@ -19,5 +19,4 @@ class UserRegister(BaseModel):
     phone: Annotated[
         PhoneNumber | None,
         BeforeValidator(lambda phone: None if phone == "" else phone),
-        PhoneNumberValidator(number_format="E164"),
     ] = None
