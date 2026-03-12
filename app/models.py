@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import ForeignKey, String, DateTime, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
 
@@ -21,6 +21,8 @@ class User(Base):
         DateTime(timezone=True), server_default=func.current_timestamp()
     )
 
+    urls: Mapped[list["URL"]] = relationship(back_populates="user")
+
 
 class URL(Base):
     __tablename__ = "urls"
@@ -32,6 +34,9 @@ class URL(Base):
         DateTime(timezone=True), server_default=func.current_timestamp()
     )
 
+    user: Mapped["User | None"] = relationship(back_populates="urls")
+    visits: Mapped[list["Visit"]] = relationship(back_populates="url")
+
 
 class Visit(Base):
     __tablename__ = "visits"
@@ -41,3 +46,5 @@ class Visit(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.current_timestamp()
     )
+
+    url: Mapped["URL"] = relationship(back_populates="visits")

@@ -57,22 +57,12 @@ def list_url_visits(
     db: SessionDep,
     user: CurrentUser
 ):
-    stmt = (
-        select(URL.code, Visit.created_at)
-        .outerjoin(Visit, Visit.code == URL.code)
-        .where(URL.user_id == user.id)
-        .order_by(URL.code, Visit.created_at)
-    )
-    rows = db.execute(stmt).all()
-    visits_by_code: dict[str, list[datetime]] = {}
-    for code, created_at in rows:
-        if code not in visits_by_code:
-            visits_by_code[code] = []
-        if created_at is not None:
-            visits_by_code[code].append(created_at)
+    stmt = select(URL).where(URL.user_id == user.id)
+    urls = db.execute(stmt).scalars().all()
+
     return [
-        {"code": code, "visits": len(dates), "dates": dates}
-        for code, dates in visits_by_code.items()
+        {"url_code": url.code, "visit_count": len(url.visits), "visit_dates": [visit.created_at for visit in url.visits]}
+        for url in urls
     ]
 
 
