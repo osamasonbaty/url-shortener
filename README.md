@@ -19,7 +19,7 @@ My purpose of building this app is to implement backend development concepts I h
 - [x] ORMs
 - [x] Users
 - [x] Auth
-- [ ] ORM relationships
+- [x] ORM relationships
 - [ ] Send email on register
 - [ ] More standard user options (delete, update info, deactivate, admin)
 - [ ] More endpoints:

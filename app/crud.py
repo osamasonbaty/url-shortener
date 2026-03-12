@@ -6,7 +6,7 @@ from app.schemas import UserRegister
 from app.core.security import verify_password, get_password_hash
 
 
-def create_user(db: Session, user_create: UserRegister):
+def create_user(db: Session, user_create: UserRegister) -> User:
     new_user = User(
         name=user_create.name,
         email=user_create.email,
