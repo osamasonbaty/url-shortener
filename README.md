@@ -26,7 +26,7 @@ My purpose of building this app is to implement backend development concepts I h
     - [x] List URLs per user
     - [ ] Get shortcodes for a given domain
 - [x] Professional archeticture and project structure
-    - [ ] Continue (routes)
+    - [x] Continue (routes)
     - [ ] Run a check with AI
 - [ ] Migrations
 - [ ] Deployment

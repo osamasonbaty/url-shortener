@@ -2,11 +2,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import User
-from app.schemas import UserCreate
+from app.schemas import UserRegister
 from app.core.security import verify_password, get_password_hash
 
 
-def create_user(db: Session, user_create: UserCreate):
+def create_user(db: Session, user_create: UserRegister):
     new_user = User(
         name=user_create.name,
         email=user_create.email,

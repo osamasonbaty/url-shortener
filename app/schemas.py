@@ -13,7 +13,7 @@ class TokenData(BaseModel):
     sub: str
 
 
-class UserCreate(BaseModel):
+class UserRegister(BaseModel):
     name: str
     email: EmailStr
     password: str = Field(json_schema_extra={"format": "password"})
