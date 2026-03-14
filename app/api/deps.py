@@ -14,7 +14,7 @@ from app.schemas import TokenData
 from app.core.config import settings
 from app.core import security
 
-oauth2_schema = OAuth2PasswordBearer(tokenUrl="login/access-token")
+oauth2_schema = OAuth2PasswordBearer(tokenUrl="/login/access-token")
 
 def get_db() -> Generator[Session, None, None]:
     with Session(engine) as session:

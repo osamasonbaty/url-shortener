@@ -1,7 +1,4 @@
-from typing import Annotated
-
-from pydantic import BaseModel, Field, EmailStr, BeforeValidator
-from pydantic_extra_types.phone_numbers import PhoneNumber
+from pydantic import BaseModel, Field, EmailStr
 
 
 class Token(BaseModel):
@@ -17,10 +14,7 @@ class UserRegister(BaseModel):
     name: str
     email: EmailStr
     password: str = Field(json_schema_extra={"format": "password"})
-    phone: Annotated[
-        PhoneNumber | None,
-        BeforeValidator(lambda phone: None if phone == "" else phone),
-    ] = None
+
 
 class UserPublic(BaseModel):
     id: int
