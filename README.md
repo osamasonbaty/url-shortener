@@ -20,11 +20,11 @@ My purpose of building this app is to implement backend development concepts I h
 - [x] Users
 - [x] Auth
 - [x] ORM relationships
-- [ ] Service layer for business logic 
-- [ ] Send email on register
+- [x] Service layer for business logic 
 - [ ] More standard user options (delete, update info, deactivate)
 - [ ] Super user and its endpoints
 - [ ] Update db schema to match (is_active, is_superuser)
+- [ ] Send email on register
 - [ ] More endpoints:
     - [x] List URLs per user
     - [ ] Get shortcodes for a given domain

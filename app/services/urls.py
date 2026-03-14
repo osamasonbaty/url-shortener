@@ -1,3 +1,5 @@
+import secrets
+import string
 from typing import Any
 
 from pydantic import AnyHttpUrl
@@ -7,7 +9,6 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models import URL, Visit, User
-from app.utils import generate_url_code
 
 
 class UrlServiceError(Exception):
@@ -20,6 +21,16 @@ class UrlCodeNotFoundError(UrlServiceError):
 
 class UrlCodeGenerationError(UrlServiceError):
     pass
+
+
+ALPHABET = string.ascii_letters + string.digits  # a-zA-Z0-9
+
+
+def generate_url_code(length: int = 6) -> str:
+    if length <= 0:
+        raise ValueError("Length must be positive")
+
+    return "".join(secrets.choice(ALPHABET) for _ in range(length))
 
 
 def create_url(db: Session, user: User, url: AnyHttpUrl) -> dict[str, Any]:
