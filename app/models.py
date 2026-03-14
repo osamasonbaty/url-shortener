@@ -13,6 +13,8 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(255))
     email: Mapped[str] = mapped_column(String(255), unique=True)
     hashed_password: Mapped[str]
+    is_active: Mapped[bool] = mapped_column(default=True)
+    is_superuser: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.current_timestamp()
     )
