@@ -5,7 +5,7 @@ It stores shortened URLs in a database, lists stored URLs, and redirects short c
 
 ## Features
 
-- Auth: get access token (`POST /token`)
+- Auth: get access token (`POST /login/access-token`)
 - Auth: register user (`POST /users`)
 - Create a shortened URL (`POST /urls`)
 - List current user URLs (`GET /urls`)
@@ -20,14 +20,17 @@ My purpose of building this app is to implement backend development concepts I h
 - [x] Users
 - [x] Auth
 - [x] ORM relationships
+- [ ] Service layer for business logic 
 - [ ] Send email on register
-- [ ] More standard user options (delete, update info, deactivate, admin)
+- [ ] More standard user options (delete, update info, deactivate)
+- [ ] Super user and its endpoints
+- [ ] Update db schema to match (is_active, is_superuser)
 - [ ] More endpoints:
     - [x] List URLs per user
     - [ ] Get shortcodes for a given domain
 - [x] Professional archeticture and project structure
     - [x] Continue (routes)
-    - [ ] Run a check with AI
+    - [x] Run a check with AI
 - [ ] Migrations
 - [ ] Deployment
 - [ ] Testing
