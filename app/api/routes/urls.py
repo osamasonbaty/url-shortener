@@ -1,11 +1,12 @@
 from typing import Annotated
 
-from fastapi import Body, APIRouter, HTTPException, status
+from fastapi import Body, APIRouter, HTTPException, status, Query
 from fastapi.responses import RedirectResponse
 from pydantic import AnyHttpUrl
 
 from app.api.deps import SessionDep, CurrentUser
 from app.services import urls as url_services
+from app.schemas import FilterParams
 
 router = APIRouter(prefix="/urls", tags=["urls"])
 redirect_router = APIRouter(tags=["urls"])
@@ -28,17 +29,19 @@ def create_url(
 @router.get("")
 def list_urls(
     db: SessionDep,
-    user: CurrentUser
+    user: CurrentUser,
+    filters: Annotated[FilterParams, Query()]
 ):
-    return url_services.list_urls(db=db, user=user)
+    return url_services.list_urls(db=db, user=user, limit=filters.limit, skip=filters.skip, asc=filters.asc)
 
 
 @router.get("/visits")
 def list_url_visits(
     db: SessionDep,
-    user: CurrentUser
+    user: CurrentUser,
+    filters: Annotated[FilterParams, Query()]
 ):
-    return url_services.list_url_visits(db=db, user=user)
+    return url_services.list_url_visits(db=db, user=user, limit=filters.limit, skip=filters.skip, asc=filters.asc)
 
 
 @redirect_router.get("/{url_code}", response_class=RedirectResponse)

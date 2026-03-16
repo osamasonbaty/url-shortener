@@ -3,7 +3,8 @@ import string
 from typing import Any
 
 from pydantic import AnyHttpUrl
-from sqlalchemy import select
+from sqlalchemy import select, func
+from sqlalchemy.dialects.postgresql import array_agg
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -52,23 +53,59 @@ def create_url(db: Session, user: User, url: AnyHttpUrl) -> dict[str, Any]:
     )
 
 
-def list_urls(db: Session, user: User):
-    stmt = select(URL.code, URL.created_at).where(URL.user_id == user.id)
+def list_urls(
+    db: Session,
+    user: User,
+    limit: int | None = None,
+    skip: int | None = None,
+    asc: bool = False,
+):
+    order = URL.created_at.asc() if asc else URL.created_at.desc()
+    stmt = select(URL.code, URL.created_at).where(URL.user_id == user.id).order_by(order)
+    if skip is not None:
+        stmt = stmt.offset(skip)
+    if limit is not None:
+        stmt = stmt.limit(limit)
     rows = db.execute(stmt).mappings().all()
     return rows
 
 
-def list_url_visits(db: Session, user: User):
-    stmt = select(URL).where(URL.user_id == user.id)
-    urls = db.execute(stmt).scalars().all()
-
+# This is codex spagetti code
+def list_url_visits(
+    db: Session,
+    user: User,
+    limit: int | None = None,
+    skip: int | None = None,
+    asc: bool = False,
+) -> list[dict]:
+    visit_count = func.count(Visit.id)
+    visit_dates = array_agg(Visit.created_at, order_by=Visit.created_at.desc()).filter(
+        Visit.id.is_not(None)
+    )
+    order = visit_count.asc() if asc else visit_count.desc()
+    stmt = (
+        select(
+            URL.code.label("url_code"),
+            visit_count.label("visit_count"),
+            visit_dates.label("visit_dates"),
+        )
+        .outerjoin(Visit, Visit.code == URL.code)
+        .where(URL.user_id == user.id)
+        .group_by(URL.code)
+        .order_by(order)
+    )
+    if skip is not None:
+        stmt = stmt.offset(skip)
+    if limit is not None:
+        stmt = stmt.limit(limit)
+    rows = db.execute(stmt).mappings().all()
     return [
         {
-            "url_code": url.code,
-            "visit_count": len(url.visits),
-            "visit_dates": [visit.created_at for visit in url.visits],
+            "url_code": row["url_code"],
+            "visit_count": row["visit_count"],
+            "visit_dates": row["visit_dates"] or [],
         }
-        for url in urls
+        for row in rows
     ]
 
 

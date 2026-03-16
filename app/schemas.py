@@ -1,3 +1,4 @@
+from typing import Annotated
 from pydantic import BaseModel, Field, EmailStr
 
 
@@ -20,3 +21,9 @@ class UserPublic(BaseModel):
     id: int
     name: str
     email: str
+
+
+class FilterParams(BaseModel):
+    limit: Annotated[int, Field(100, gt=0, le=100)]
+    skip: Annotated[int, Field(0, ge=0)]
+    asc: bool = False
