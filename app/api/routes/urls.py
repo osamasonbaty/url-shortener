@@ -6,12 +6,12 @@ from pydantic import AnyHttpUrl
 
 from app.api.deps import SessionDep, CurrentUser
 from app.services import urls as url_services
-from app.schemas import FilterParams, URLCreateResponse, URLPublic
+from app.schemas import FilterParams, URLPublic
 
 router = APIRouter(prefix="/urls", tags=["urls"])
 redirect_router = APIRouter(tags=["urls"])
 
-@router.post("", response_model=URLCreateResponse)
+@router.post("", response_model=URLPublic)
 def create_url(
     url: Annotated[AnyHttpUrl, Body()],
     db: SessionDep,

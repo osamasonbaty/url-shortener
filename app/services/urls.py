@@ -46,29 +46,23 @@ def extract_domain(url: str) -> str:
     return domain
 
 
-def create_url(db: Session, user: User, url: AnyHttpUrl) -> dict[str, Any]:
+def create_url(db: Session, user: User, url: AnyHttpUrl) -> URL:
     parsed_url = str(url)
     domain = extract_domain(parsed_url)
     for _ in range(settings.CODE_GEN_MAX_RETRIES):
         url_code = generate_url_code()
         try:
-            db.add(
-                URL(
-                    code=url_code,
-                    url=parsed_url,
-                    domain=domain,
-                    is_active=True,
-                    user_id=user.id,
-                )
+            db_obj = URL(
+                code=url_code,
+                url=parsed_url,
+                domain=domain,
+                is_active=True,
+                user_id=user.id,
             )
+            db.add(db_obj)
             db.commit()
-            return {
-                "url_code": url_code,
-                "url": parsed_url,
-                "domain": domain,
-                "is_active": True,
-                "short_url": f"{settings.BACKEND_HOST}/{url_code}",
-            }
+            db.refresh(db_obj)
+            return db_obj
         except IntegrityError:
             db.rollback()
 

@@ -30,8 +30,6 @@ def get_user_by_id(db: Session, id: int) -> User | None:
 
 
 def update_user(db: Session, user: User, user_update: UserUpdateMe) -> User:
-    if user_update.name is not None:
-        user.name = user_update.name
     if user_update.email is not None:
         user.email = user_update.email
     if user_update.password is not None:

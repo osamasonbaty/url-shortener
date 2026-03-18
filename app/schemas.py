@@ -36,17 +36,8 @@ class UserUpdateMe(BaseModel):
 class URLPublic(BaseModel):
     code: str
     url: str
-    domain: str
     is_active: bool
     created_at: datetime
-
-
-class URLCreateResponse(BaseModel):
-    url_code: str
-    url: str
-    domain: str
-    is_active: bool
-    short_url: str
 
 
 class URLUpdate(BaseModel):
