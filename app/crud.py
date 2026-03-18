@@ -1,8 +1,9 @@
-from sqlalchemy import select
+from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import User
-from app.schemas import UserRegister
+from app.schemas import UserRegister, UserUpdateMe
 from app.core.security import verify_password, get_password_hash
 
 
@@ -26,6 +27,31 @@ def get_user_by_email(db: Session, email: str) -> User | None:
 
 def get_user_by_id(db: Session, id: int) -> User | None:
     return db.get(User, id)
+
+
+def update_user(db: Session, user: User, user_update: UserUpdateMe) -> User:
+    if user_update.name is not None:
+        user.name = user_update.name
+    if user_update.email is not None:
+        user.email = user_update.email
+    if user_update.password is not None:
+        user.hashed_password = get_password_hash(user_update.password)
+
+    try:
+        db.add(user)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise
+
+    db.refresh(user)
+    return user
+
+
+def delete_user(db: Session, user: User) -> None:
+    #TODO Cascade deletes in the model
+    db.delete(user)
+    db.commit()
 
 
 # Dummy hash to use for timing attack prevention when user is not found

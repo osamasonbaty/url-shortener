@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 from pydantic import BaseModel, Field, EmailStr
 
@@ -21,6 +22,35 @@ class UserPublic(BaseModel):
     id: int
     name: str
     email: str
+
+
+class UserUpdateMe(BaseModel):
+    name: str | None = None
+    email: EmailStr | None = None
+    password: str | None = Field(
+        default=None,
+        json_schema_extra={"format": "password"},
+    )
+
+
+class URLPublic(BaseModel):
+    code: str
+    url: str
+    domain: str
+    is_active: bool
+    created_at: datetime
+
+
+class URLCreateResponse(BaseModel):
+    url_code: str
+    url: str
+    domain: str
+    is_active: bool
+    short_url: str
+
+
+class URLUpdate(BaseModel):
+    url: str
 
 
 class FilterParams(BaseModel):

@@ -32,6 +32,8 @@ class URL(Base):
 
     code: Mapped[str] = mapped_column(String(6), primary_key=True)
     url: Mapped[str]
+    domain: Mapped[str] = mapped_column(String(255))
+    is_active: Mapped[bool] = mapped_column(default=True)
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.current_timestamp()

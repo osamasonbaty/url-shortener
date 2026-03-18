@@ -21,9 +21,9 @@ My purpose of building this app is to implement backend development concepts I h
 - [x] Auth
 - [x] ORM relationships
 - [x] Service layer for business logic 
-- [ ] More standard user options (delete, update info, deactivate)
-- [ ] Super user and its endpoints
+- [x] More standard user options (delete, update info, deactivate)
 - [x] Update db schema to match (is_active, is_superuser)
+- [ ] Super user and its endpoints
 - [ ] Send email on register
 - [ ] More endpoints:
     - [x] List URLs per user
