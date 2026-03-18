@@ -19,7 +19,9 @@ class User(Base):
         DateTime(timezone=True), server_default=func.current_timestamp()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.current_timestamp()
+        DateTime(timezone=True),
+        server_default=func.current_timestamp(),
+        onupdate=func.current_timestamp(),
     )
 
     urls: Mapped[list["URL"]] = relationship(back_populates="user")

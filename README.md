@@ -1,6 +1,6 @@
 # FastAPI URL Shortener
 
-A minimal URL shortener built with **FastAPI** and **SQLAlchemy**.  
+A minimal URL shortener built with **FastAPI**, **SQLAlchemy**, and **Alembic**.  
 It stores shortened URLs in a database, lists stored URLs, and redirects short codes to the original URL while recording visits.
 
 ## Features
@@ -23,7 +23,7 @@ My purpose of building this app is to implement backend development concepts I h
 - [x] Service layer for business logic 
 - [ ] More standard user options (delete, update info, deactivate)
 - [ ] Super user and its endpoints
-- [ ] Update db schema to match (is_active, is_superuser)
+- [x] Update db schema to match (is_active, is_superuser)
 - [ ] Send email on register
 - [ ] More endpoints:
     - [x] List URLs per user
@@ -31,7 +31,7 @@ My purpose of building this app is to implement backend development concepts I h
 - [x] Professional archeticture and project structure
     - [x] Continue (routes)
     - [x] Run a check with AI
-- [ ] Migrations
+- [x] Migrations
 - [ ] Deployment
 - [ ] Testing
 - [ ] Simple Forntend
