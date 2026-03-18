@@ -98,6 +98,28 @@ def list_urls(
     return rows
 
 
+def list_urls_by_domain(
+    db: Session,
+    user: User,
+    domain: str,
+    limit: int | None = None,
+    skip: int | None = None,
+    asc: bool = False,
+):
+    order = URL.created_at.asc() if asc else URL.created_at.desc()
+    stmt = (
+        select(URL.code, URL.url, URL.domain, URL.is_active, URL.created_at)
+        .where(URL.user_id == user.id, URL.domain == domain)
+        .order_by(order)
+    )
+    if skip is not None:
+        stmt = stmt.offset(skip)
+    if limit is not None:
+        stmt = stmt.limit(limit)
+    rows = db.execute(stmt).mappings().all()
+    return rows
+
+
 # This is codex spagetti code
 def list_url_visits(
     db: Session,
@@ -162,6 +184,18 @@ def deactivate_user_url(db: Session, user: User, url_code: str) -> URL:
         raise UrlCodeNotFoundError("URL code not found")
 
     db_url.is_active = False
+    db.add(db_url)
+    db.commit()
+    db.refresh(db_url)
+    return db_url
+
+
+def reactivate_user_url(db: Session, user: User, url_code: str) -> URL:
+    db_url = get_user_url(db=db, user=user, url_code=url_code)
+    if db_url is None:
+        raise UrlCodeNotFoundError("URL code not found")
+
+    db_url.is_active = True
     db.add(db_url)
     db.commit()
     db.refresh(db_url)

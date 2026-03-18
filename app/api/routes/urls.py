@@ -35,6 +35,23 @@ def list_urls(
     return url_services.list_urls(db=db, user=user, limit=filters.limit, skip=filters.skip, asc=filters.asc)
 
 
+@router.get("/domain/{domain}", response_model=list[URLPublic])
+def list_urls_by_domain(
+    domain: str,
+    db: SessionDep,
+    user: CurrentUser,
+    filters: Annotated[FilterParams, Query()]
+):
+    return url_services.list_urls_by_domain(
+        db=db,
+        user=user,
+        domain=domain,
+        limit=filters.limit,
+        skip=filters.skip,
+        asc=filters.asc,
+    )
+
+
 @router.get("/visits")
 def list_url_visits(
     db: SessionDep,
@@ -68,6 +85,21 @@ def deactivate_own_url(
 ):
     try:
         return url_services.deactivate_user_url(db=db, user=user, url_code=url_code)
+    except url_services.UrlCodeNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+
+@router.post("/{url_code}/reactivate", response_model=URLPublic)
+def reactivate_own_url(
+    url_code: str,
+    db: SessionDep,
+    user: CurrentUser,
+):
+    try:
+        return url_services.reactivate_user_url(db=db, user=user, url_code=url_code)
     except url_services.UrlCodeNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
